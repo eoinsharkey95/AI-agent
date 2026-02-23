@@ -19,11 +19,15 @@ parser = argparse.ArgumentParser(description="Chatbot")
 parser.add_argument("user_prompt", type=str, help="User prompt")
 args = parser.parse_args()
 
+from google.genai import types
+messages = [types.Content(role="user", parts=[types.Part(text=args.user_prompt)])]
+
+
 def main():
     print("Hello from ai-agent!")
     response = client.models.generate_content( 
-        model = 'gemini-2.5-flash',
-        contents= args.user_prompt
+        model='gemini-2.5-flash',
+        contents=messages
     )
 
     if response.usage_metadata == None:
