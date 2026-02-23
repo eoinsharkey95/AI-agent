@@ -13,13 +13,17 @@ if api_key == None:
 from google import genai
 client = genai.Client(api_key=api_key)
 
-
+# Set up new instance of our arg parser
+import argparse
+parser = argparse.ArgumentParser(description="Chatbot")
+parser.add_argument("user_prompt", type=str, help="User prompt")
+args = parser.parse_args()
 
 def main():
     print("Hello from ai-agent!")
     response = client.models.generate_content( 
         model = 'gemini-2.5-flash',
-        contents= "Why is Boot.dev such a great place to learn backend development? Use one paragraph maximum."
+        contents= args.user_prompt
     )
 
     if response.usage_metadata == None:
