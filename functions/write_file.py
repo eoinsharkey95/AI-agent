@@ -1,4 +1,5 @@
 import os
+from google.genai import types
 
 def write_file(working_directory, file_path, content):
     
@@ -18,7 +19,11 @@ def write_file(working_directory, file_path, content):
         if os.path.isdir(target_file):
             return f'Error: Cannot write to "{file_path}" as it is a directory'
         
-        os.makedirs(file_path, exist_ok=True)
+        
+        parent_dir = os.path.dirname(target_file)
+        if parent_dir:
+            os.makedirs(parent_dir, exist_ok=True)
+        
         with open(target_file, "w") as f:
             f.write(content)
         
@@ -28,4 +33,22 @@ def write_file(working_directory, file_path, content):
         
     except Exception as e:
         return f'Error: {e}'
-    
+
+# Declare the available "write_file" function for the LLM to use in a type format
+schema_write_file = types.FunctionDeclaration(
+    name="write_file",
+    description=f"Write new or overwrite existing file in a specified directory relative to the working directory",
+    parameters=types.Schema(
+        type=types.Type.OBJECT,
+        properties={
+            "file_path": types.Schema(
+                type=types.Type.STRING,
+                description="File name of target file",
+            ),
+            "content": types.Schema(
+                type=types.Type.STRING,
+                description='Contents to be written to target file',
+            ),
+        },
+    ),
+)

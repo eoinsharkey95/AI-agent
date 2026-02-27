@@ -1,6 +1,6 @@
 import os
 from config import *
-#MAX_CHARS = 10000
+from google.genai import types
 
 def get_file_content(working_directory, file_path):
     
@@ -30,5 +30,17 @@ def get_file_content(working_directory, file_path):
     
     return content
 
-
-#print(get_file_content("calculator", "config.py"))
+# Declare the available "get_file_content" function for the LLM to use in a type format 
+schema_get_file_content = types.FunctionDeclaration(
+    name="get_file_content",
+    description=f"Returns content of a specified in directory relative to the working directory, as string truncated to {MAX_CHARS} characters",
+    parameters=types.Schema(
+        type=types.Type.OBJECT,
+        properties={
+            "file_path": types.Schema(
+                type=types.Type.STRING,
+                description="File name of target file",
+            ),
+        },
+    ),
+)
