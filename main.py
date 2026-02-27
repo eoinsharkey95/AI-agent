@@ -1,5 +1,3 @@
-
-
 import os
 from dotenv import load_dotenv
 from prompts import *
@@ -33,8 +31,17 @@ def main():
     if args.verbose:
         print(f'User prompt: {args.user_prompt}\n')
 
-    generate_content(client, messages, args.verbose)
+    
+    limit = 20
 
+    for _ in range(limit):
+        done = generate_content(client, messages, args.verbose) # Call the model, handle responses, etc. up to the limit.
+        if done: # End the loop if the client does not call a function.
+            break
+    
+    # Runs only if loop completes without breaking
+    print('Error: iteration limit reached without completed task')
+    exit(1)
 
 
 def generate_content(client, messages, verbose):
@@ -59,6 +66,12 @@ def generate_content(client, messages, verbose):
     prompt_tokens = response.usage_metadata.prompt_token_count
     response_tokens = response.usage_metadata.candidates_token_count
     
+    # add all candidates (previous responses, usually just one) to the conversation
+    if response.candidates:
+        for candidate in response.candidates:
+            messages.append(candidate.content)
+ 
+
     if verbose:
         print(f'Prompt tokens: {prompt_tokens}')
         print(f'Response tokens: {response_tokens}')
@@ -69,34 +82,33 @@ def generate_content(client, messages, verbose):
     if not response.function_calls:
         # Only print text if there are NO function calls
         print(response.text)
+        return True # for "done" variable
 
-    else:
-        function_results = []   # set up empty list for non-error results
+    function_results = []   # set up empty list for non-error results
 
-        for function_call in response.function_calls:           
-            # Call the requested function
-            function_call_result = call_function(function_call, verbose)
+    for function_call in response.function_calls:           
+        # Call the requested function
+        function_call_result = call_function(function_call, verbose)
+        
+        # Error handling for failed function call
+        if not function_call_result.parts:
+            raise Exception('Error: result contains no .parts')
+        
+        if not function_call_result.parts[0].function_response:
+            raise Exception('Error: No FunctionResponse object returned by function')
+        
+        if not function_call_result.parts[0].function_response.response:
+            raise Exception('Error: No FunctionResponse response returned by function')
+        
+        # Add the result to the list of results
+        function_results.append(function_call_result.parts[0])
+        
+        if verbose:
+            print(f"-> {function_call_result.parts[0].function_response.response}")
+    
+    messages.append(types.Content(role="user", parts=function_results))
+    return False # for "done" variable
             
-            # Error handling for failed function call
-            if not function_call_result.parts:
-                raise Exception('Error: result contains no .parts')
-            
-            if not function_call_result.parts[0].function_response:
-                raise Exception('Error: No FunctionResponse object returned by function')
-            
-            if not function_call_result.parts[0].function_response.response:
-                raise Exception('Error: No FunctionResponse response returned by function')
-            
-            # Add the result to the list of results
-            function_results.append(function_call_result.parts[0])
-            
-            if verbose:
-                print(f"-> {function_call_result.parts[0].function_response.response}")
-            
-
-
-
-
 
 if __name__ == "__main__":
     main()
